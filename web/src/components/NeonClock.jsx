@@ -620,6 +620,29 @@ function ArcOptionsMenu({ arc, onClose, onSlide, onEdit, onDelete }) {
   );
 }
 
+// Identity matchers used by undo/redo: row-deleted entities are recreated
+// from snapshots, and their ids change on every recreate. These match the
+// current incarnation of an entity so a redo deletes the live row (not a
+// stale id) and an undo reuses it instead of creating a duplicate.
+const sameArcShape = (a, s) =>
+  (a.label || '') === (s.label || '') &&
+  (a.start_time || '') === (s.start_time || '') &&
+  (a.end_time || '') === (s.end_time || '') &&
+  (a.mode || '') === (s.mode || '') &&
+  (a.tag_id || null) === (s.tag_id || null) &&
+  (a.days_of_week || '') === (s.days_of_week || '') &&
+  a.recurring === s.recurring &&
+  (a.start_date || null) === (s.start_date || null);
+
+const sameAlarmShape = (a, s, parentId) =>
+  (a.time || '') === (s.time || '') &&
+  (a.label || '') === (s.label || '') &&
+  (a.days_of_week || '') === (s.days_of_week || '') &&
+  a.recurring === s.recurring &&
+  (a.tag_id || null) === (s.tag_id || null) &&
+  (a.parent_alarm_id || null) === (parentId ?? null) &&
+  (a.arc_id || null) === (s.arc_id || null);
+
 export default function NeonClock() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -1097,21 +1120,28 @@ export default function NeonClock() {
 
   // Undo a row-deleted arc or alarm: recreate it from its snapshot. Arcs go
   // first (their alarms are regenerated server-side), then alarms — with
-  // arc/parent references remapped to the recreated ids.
+  // arc/parent references remapped to the recreated ids. If a current
+  // incarnation of the entity already exists (e.g. it was deleted and undone
+  // twice, or recreated under an earlier op), it is adopted instead of
+  // duplicating it.
   const recreateDeleted = async (items) => {
     const arcRemap = new Map();
     for (const it of items) {
       if (it.type !== 'arc' || it.action !== 'delete') continue;
       const s = it.snapshot;
-      const res = await api.arcs.create({
-        start_time: s.start_time, end_time: s.end_time, mode: s.mode, tag_id: s.tag_id, label: s.label,
-        days_of_week: s.days_of_week, has_lunch: s.has_lunch, lunch_start: s.lunch_start, lunch_end: s.lunch_end,
-        has_morning_break: s.has_morning_break, morning_break_start: s.morning_break_start, morning_break_end: s.morning_break_end,
-        has_afternoon_break: s.has_afternoon_break, afternoon_break_start: s.afternoon_break_start, afternoon_break_end: s.afternoon_break_end,
-        reminders_before_start: s.reminders_before_start, recurring: s.recurring, start_date: s.start_date,
-      });
-      it.newId = res.id;
-      arcRemap.set(s.id, res.id);
+      let existing = arcs.find(a => sameArcShape(a, s));
+      if (!existing) {
+        const res = await api.arcs.create({
+          start_time: s.start_time, end_time: s.end_time, mode: s.mode, tag_id: s.tag_id, label: s.label,
+          days_of_week: s.days_of_week, has_lunch: s.has_lunch, lunch_start: s.lunch_start, lunch_end: s.lunch_end,
+          has_morning_break: s.has_morning_break, morning_break_start: s.morning_break_start, morning_break_end: s.morning_break_end,
+          has_afternoon_break: s.has_afternoon_break, afternoon_break_start: s.afternoon_break_start, afternoon_break_end: s.afternoon_break_end,
+          reminders_before_start: s.reminders_before_start, recurring: s.recurring, start_date: s.start_date,
+        });
+        existing = res;
+      }
+      it.newId = existing.id;
+      arcRemap.set(s.id, existing.id);
     }
     const alarmRemap = new Map();
     const alarmsToRestore = items
@@ -1121,15 +1151,21 @@ export default function NeonClock() {
       const s = it.snapshot;
       // Arc regeneration already restored this alarm.
       if (s.arc_id && arcRemap.has(s.arc_id)) continue;
-      const res = await api.alarms.create({
-        time: s.time, days_of_week: s.days_of_week, tag_id: s.tag_id, label: s.label,
-        is_active: s.is_active, snooze_minutes: s.snooze_minutes, start_date: s.start_date,
-        recurring: s.recurring,
-        parent_alarm_id: s.parent_alarm_id ? (alarmRemap.get(s.parent_alarm_id) || s.parent_alarm_id) : null,
-        is_locked: s.is_locked, arc_id: s.arc_id ? (arcRemap.get(s.arc_id) || s.arc_id) : null,
-      });
-      it.newId = res.id;
-      alarmRemap.set(s.id, res.id);
+      const parentId = s.parent_alarm_id ? (alarmRemap.get(s.parent_alarm_id) || s.parent_alarm_id) : null;
+      const arcId = s.arc_id ? (arcRemap.get(s.arc_id) || s.arc_id) : null;
+      let existing = alarms.find(a => sameAlarmShape(a, s, parentId));
+      if (!existing) {
+        const res = await api.alarms.create({
+          time: s.time, days_of_week: s.days_of_week, tag_id: s.tag_id, label: s.label,
+          is_active: s.is_active, snooze_minutes: s.snooze_minutes, start_date: s.start_date,
+          recurring: s.recurring,
+          parent_alarm_id: parentId,
+          is_locked: s.is_locked, arc_id: arcId,
+        });
+        existing = res;
+      }
+      it.newId = existing.id;
+      alarmRemap.set(s.id, existing.id);
     }
   };
 
@@ -1157,9 +1193,21 @@ export default function NeonClock() {
       if (useBefore) {
         try { await recreateDeleted(op.items); } catch {}
       } else {
+        const resolved = new Map();
         for (const it of op.items) {
           if (it.action !== 'delete') continue;
-          const rid = it.newId || it.id;
+          const list = it.type === 'arc' ? arcs : alarms;
+          let rid = it.newId || it.id;
+          if (!list.some(x => x.id === rid)) {
+            // The recorded id is stale (the entity was deleted and recreated
+            // again since). Delete its current incarnation instead.
+            const parentId = it.snapshot?.parent_alarm_id ? resolved.get(it.snapshot.parent_alarm_id) : null;
+            const match = list.find(x => it.type === 'arc'
+              ? sameArcShape(x, it.snapshot)
+              : sameAlarmShape(x, it.snapshot, parentId));
+            if (match) rid = match.id;
+          }
+          resolved.set(it.snapshot?.id, rid);
           try {
             if (it.type === 'arc') await arcApi.delete(rid);
             else await alarmApi.delete(rid);
