@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #1e1e2e #0a0a0f;
+}
+
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(0.7);
+}
+
+@layer components {
+  .neon-card {
+    @apply bg-neon-surface border border-neon-border rounded-xl p-4 transition-all duration-200;
+  }
+  .neon-card:hover {
+    @apply border-neon-cyan/30;
+  }
+  .neon-input {
+    @apply bg-neon-bg border border-neon-border rounded-lg px-4 py-2.5 text-white placeholder-gray-500
+           focus:outline-none focus:border-neon-cyan focus:ring-1 focus:ring-neon-cyan/30 transition-colors;
+  }
+  .neon-btn {
+    @apply px-5 py-2.5 rounded-lg font-medium transition-all duration-200
+           active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+  .neon-btn-primary {
+    @apply neon-btn bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/40
+           hover:bg-neon-cyan/30 hover:shadow-neon-cyan;
+  }
+  .neon-btn-danger {
+    @apply neon-btn bg-red-500/20 text-red-400 border border-red-500/40
+           hover:bg-red-500/30;
+  }
+  .neon-toggle {
+    @apply relative w-12 h-6 rounded-full transition-colors duration-200 cursor-pointer;
+  }
+  .neon-toggle-knob {
+    @apply absolute top-0.5 left-0.5 w-5 h-5 rounded-full transition-all duration-200;
+  }
+}

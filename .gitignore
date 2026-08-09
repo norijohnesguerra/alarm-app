@@ -1,0 +1,9 @@
+node_modules/
+*.db
+.env
+dist/
+web/dist/
+android/.gradle/
+android/local.properties
+
+server/*.db.inspect

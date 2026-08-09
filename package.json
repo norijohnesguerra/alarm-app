@@ -1,0 +1,14 @@
+{
+  "name": "neon-alarm",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "server": "cd server && node index.js",
+    "web": "cd web && npm run dev",
+    "dev": "concurrently \"npm run server\" \"npm run web\"",
+    "setup": "cd server && npm install && cd ../web && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

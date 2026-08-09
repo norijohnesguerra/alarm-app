@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="neon_bg">#FF0A0A0F</color>
+    <color name="neon_surface">#FF12121A</color>
+    <color name="neon_cyan">#FF00E5FF</color>
+    <color name="neon_magenta">#FFFF00FF</color>
+    <color name="neon_lime">#FF76FF03</color>
+    <color name="ic_launcher_background">#FF0A0A0F</color>
+</resources>
