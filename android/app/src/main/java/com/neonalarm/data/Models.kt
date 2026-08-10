@@ -9,11 +9,11 @@ data class Alarm(
     val time: String,
     @SerializedName("days_of_week") val daysOfWeek: String = "1,2,3,4,5",
     @SerializedName("tag_id") val tagId: Long? = null,
-    @SerializedName("is_active") val isActive: Boolean = true,
+    @SerializedName("is_active") val isActive: Int = 1,
     val label: String = "",
     @SerializedName("snooze_minutes") val snoozeMinutes: Int = 5,
     @SerializedName("parent_alarm_id") val parentAlarmId: Long? = null,
-    @SerializedName("is_locked") val isLocked: Boolean = true,
+    @SerializedName("is_locked") val isLocked: Int = 1,
     @SerializedName("created_at") val createdAt: String = "",
     @SerializedName("updated_at") val updatedAt: String = "",
     @SerializedName("tag_name") val tagName: String? = null,
@@ -29,7 +29,7 @@ data class Tag(
     val name: String,
     val color: String = "#00e5ff",
     @SerializedName("categories") val category: String = "custom",
-    @SerializedName("is_system_default") val isSystemDefault: Boolean = false
+    @SerializedName("is_system_default") val isSystemDefault: Int = 0
 )
 
 data class Memo(

@@ -1,9 +1,12 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.neonalarm.ui
 
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -45,6 +48,7 @@ fun AlarmsScreen(navController: NavController) {
         try {
             alarms = ApiClient.api.getAlarms().body() ?: emptyList()
             tags = ApiClient.api.getTags().body() ?: emptyList()
+            resyncAlarms(context, alarms)
         } catch (_: Exception) {}
         loading = false
     }
@@ -76,6 +80,7 @@ fun AlarmsScreen(navController: NavController) {
                                 try {
                                     ApiClient.api.createAlarm(req)
                                     alarms = ApiClient.api.getAlarms().body() ?: emptyList()
+                                    resyncAlarms(context, alarms)
                                     showCreate = false
                                 } catch (_: Exception) {}
                             }
@@ -111,14 +116,18 @@ fun AlarmsScreen(navController: NavController) {
                     AlarmCard(alarm = alarm, isParent = true, childCount = children.size,
                         onToggle = {
                             scope.launch {
+                                if (alarm.isActive == 1) cancelAlarm(context, alarm.id)
                                 ApiClient.api.toggleAlarm(alarm.id)
                                 alarms = ApiClient.api.getAlarms().body() ?: emptyList()
+                                resyncAlarms(context, alarms)
                             }
                         },
                         onDelete = {
                             scope.launch {
+                                cancelAlarm(context, alarm.id)
                                 ApiClient.api.deleteAlarm(alarm.id)
                                 alarms = ApiClient.api.getAlarms().body() ?: emptyList()
+                                resyncAlarms(context, alarms)
                             }
                         },
                         onSchedule = { if (isWorkTag) scheduleAlarm = alarm },
@@ -169,7 +178,7 @@ fun AlarmCard(alarm: Alarm, isParent: Boolean, childCount: Int, onToggle: () -> 
             }
             Column(horizontalAlignment = Alignment.End) {
                 Switch(
-                    checked = alarm.isActive,
+                    checked = alarm.isActive == 1,
                     onCheckedChange = { onToggle() },
                     colors = SwitchDefaults.colors(checkedThumbColor = NeonCyan, checkedTrackColor = NeonCyan.copy(alpha = 0.3f))
                 )
@@ -193,13 +202,13 @@ fun ChildAlarmCard(alarm: Alarm, onToggle: () -> Unit, onToggleLock: () -> Unit)
             Text(alarm.label, color = NeonGray, fontSize = 12.sp, modifier = Modifier.weight(1f))
             TextButton(onClick = onToggleLock) {
                 Text(
-                    text = if (alarm.isLocked) "Linked" else "Free",
-                    color = if (alarm.isLocked) NeonCyan else NeonDarkGray,
+                    text = if (alarm.isLocked == 1) "Linked" else "Free",
+                    color = if (alarm.isLocked == 1) NeonCyan else NeonDarkGray,
                     fontSize = 10.sp
                 )
             }
             Switch(
-                checked = alarm.isActive,
+                checked = alarm.isActive == 1,
                 onCheckedChange = { onToggle() },
                 colors = SwitchDefaults.colors(checkedThumbColor = NeonCyan, checkedTrackColor = NeonCyan.copy(alpha = 0.3f))
             )
@@ -328,19 +337,54 @@ fun CreateAlarmForm(tags: List<Tag>, onDismiss: () -> Unit, onSave: (AlarmCreate
 
 fun scheduleAlarm(context: Context, alarm: Alarm) {
     val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+    val t = alarm.time.replace(":", "")
+    val hour = t.take(2).toIntOrNull() ?: 7
+    val minute = t.drop(2).toIntOrNull() ?: 0
+    val cal = Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, hour)
+        set(Calendar.MINUTE, minute)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+        if (timeInMillis <= System.currentTimeMillis()) add(Calendar.DAY_OF_YEAR, 1)
+    }
     val intent = Intent(context, AlarmReceiver::class.java).apply {
         putExtra("ALARM_ID", alarm.id.toInt())
         putExtra("ALARM_LABEL", alarm.label.ifEmpty { alarm.tagName ?: "Alarm" })
         putExtra("TAG_COLOR", alarm.tagColor)
+        putExtra("ALARM_TIME", alarm.time)
         putExtra("DAYS_OF_WEEK", alarm.daysOfWeek)
+        putExtra("HOUR", hour)
+        putExtra("MINUTE", minute)
     }
     val pendingIntent = PendingIntent.getBroadcast(context, alarm.id.toInt(), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-    val parts = alarm.time.split(":")
-    val cal = Calendar.getInstance().apply {
-        set(Calendar.HOUR_OF_DAY, parts[0].toInt())
-        set(Calendar.MINUTE, parts[1].toInt())
-        set(Calendar.SECOND, 0)
-        if (timeInMillis <= System.currentTimeMillis()) add(Calendar.DAY_OF_YEAR, 1)
+    try {
+        val exactAllowed = Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()
+        if (exactAllowed) {
+            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, cal.timeInMillis, pendingIntent)
+        } else {
+            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, cal.timeInMillis, pendingIntent)
+        }
+    } catch (_: SecurityException) {
+        try { alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, cal.timeInMillis, pendingIntent) } catch (_: Exception) {}
     }
-    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, cal.timeInMillis, pendingIntent)
+}
+
+fun cancelAlarm(context: Context, alarmId: Long) {
+    val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+    val intent = Intent(context, AlarmReceiver::class.java)
+    val pendingIntent = PendingIntent.getBroadcast(
+        context, alarmId.toInt(), intent,
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+    )
+    alarmManager.cancel(pendingIntent)
+    pendingIntent.cancel()
+}
+
+// Schedule every active alarm so AlarmManager fires them on schedule.
+fun resyncAlarms(context: Context, alarms: List<Alarm>) {
+    for (alarm in alarms) {
+        if (alarm.isActive == 1) {
+            try { scheduleAlarm(context, alarm) } catch (_: Exception) {}
+        }
+    }
 }

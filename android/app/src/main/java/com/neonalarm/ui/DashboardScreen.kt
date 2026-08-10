@@ -74,7 +74,7 @@ fun DashboardScreen(navController: NavController) {
                         Card(modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = NeonSurface)) {
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Text("ACTIVE", color = NeonDarkGray, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
-                                Text("${alarms.count { it.isActive }}", color = NeonCyan, fontSize = 28.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace)
+                                Text("${alarms.count { it.isActive == 1 }}", color = NeonCyan, fontSize = 28.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace)
                             }
                         }
                         Card(modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = NeonSurface)) {

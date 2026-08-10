@@ -131,7 +131,7 @@ fun TagsScreen(navController: NavController) {
                                     } catch (_: Exception) {}
                                 }
                             }) { Text("Memo", color = NeonCyan, fontSize = 11.sp) }
-                            if (!tag.isSystemDefault) {
+                            if (tag.isSystemDefault != 1) {
                                 TextButton(onClick = {
                                     scope.launch {
                                         ApiClient.api.deleteTag(tag.id)
