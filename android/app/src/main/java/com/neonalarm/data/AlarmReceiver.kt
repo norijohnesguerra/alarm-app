@@ -53,8 +53,8 @@ class AlarmReceiver : BroadcastReceiver() {
             context.startActivity(alertIntent)
         } catch (_: Exception) {}
 
-        // Snooze fires carry IS_SNOOZE and must not touch the daily schedule.
-        if (intent.getBooleanExtra("IS_SNOOZE", false)) return
+        // Snooze/test fires carry IS_SNOOZE/IS_TEST and must not touch the daily schedule.
+        if (intent.getBooleanExtra("IS_SNOOZE", false) || intent.getBooleanExtra("IS_TEST", false)) return
         rescheduleDaily(context, alarmId, intent)
     }
 

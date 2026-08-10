@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.neonalarm.BuildConfig
 import com.neonalarm.data.*
 import com.neonalarm.ui.theme.*
 import kotlinx.coroutines.launch
@@ -58,7 +59,23 @@ fun AlarmsScreen(navController: NavController) {
             TopAppBar(
                 title = { Text("ALARMS", fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, letterSpacing = 2.sp) },
                 navigationIcon = { IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.Default.ArrowBack, "Back", tint = NeonCyan) } },
-                actions = { IconButton(onClick = { showCreate = !showCreate }) { Icon(Icons.Default.Add, "Add", tint = NeonCyan) } },
+                actions = {
+                    if (BuildConfig.DEBUG) {
+                        IconButton(onClick = {
+                            val now = Calendar.getInstance()
+                            val intent = Intent(context, AlarmReceiver::class.java).apply {
+                                putExtra("ALARM_ID", -1)
+                                putExtra("ALARM_LABEL", "TEST ALARM")
+                                putExtra("ALARM_TIME", String.format(Locale.US, "%02d%02d", now.get(Calendar.HOUR_OF_DAY), now.get(Calendar.MINUTE)))
+                                putExtra("HOUR", now.get(Calendar.HOUR_OF_DAY))
+                                putExtra("MINUTE", now.get(Calendar.MINUTE))
+                                putExtra("IS_TEST", true)
+                            }
+                            context.sendBroadcast(intent)
+                        }) { Icon(Icons.Default.NotificationsActive, "Test alarm", tint = NeonCyan) }
+                    }
+                    IconButton(onClick = { showCreate = !showCreate }) { Icon(Icons.Default.Add, "Add", tint = NeonCyan) }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = NeonSurface)
             )
         },
