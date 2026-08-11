@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+﻿import { useState, useEffect, useRef, useCallback } from 'react';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -8,7 +8,7 @@ import WorkScheduleModal, { Toggle } from './WorkScheduleModal';
 
 const PRESET_COLORS = ['#00e5ff', '#ff00ff', '#76ff03', '#ff9100', '#ff4081', '#7c4dff', '#00e676', '#ffea00'];
 const CATEGORY_ICONS = {
-  work: '💼', personal: '👤', custom: '🏷️'
+  work: 'ðŸ’¼', personal: 'ðŸ‘¤', custom: 'ðŸ·ï¸'
 };
 const CATEGORIES = [
   { value: 'work', label: 'Work' },
@@ -193,13 +193,13 @@ function EditAlarmModal({ alarm, tags, onClose, onSave, onDelete }) {
         <div className="flex items-center justify-between border-t border-neon-border pt-3">
           <div>
             <label className="text-[10px] text-gray-400 font-display">RECURRING</label>
-            <p className="text-[9px] text-gray-600">{recurring ? 'On — repeats weekly on selected days' : 'Off — single alarm for today'}</p>
+            <p className="text-[9px] text-gray-600">{recurring ? 'On â€” repeats weekly on selected days' : 'Off â€” single alarm for today'}</p>
           </div>
           <Toggle checked={recurring} onChange={() => handleRecurringChange(!recurring)} color="#00e5ff" />
         </div>
 
         <div className={recurring ? '' : 'opacity-40'}>
-          <label className="block text-[10px] text-gray-400 mb-2 font-display">DAYS {!recurring && '· TODAY ONLY'}</label>
+          <label className="block text-[10px] text-gray-400 mb-2 font-display">DAYS {!recurring && 'Â· TODAY ONLY'}</label>
           <div className="flex gap-1.5">
             {[0,1,2,3,4,5,6].map(d => (
               <button key={d} onClick={() => toggleDay(d)}
@@ -232,10 +232,10 @@ function DeleteAlarmPrompt({ alarm, dayCount, onClose, onDeleteDay, onDeleteAlar
         <p className="text-xs text-gray-300">
           Delete <span className="text-white font-bold">{name}</span> at <span className="font-mono text-white font-bold">{alarm.time}</span>?
         </p>
-        <p className="text-[10px] text-gray-500">Both options only affect this date — no other day is touched.</p>
+        <p className="text-[10px] text-gray-500">Both options only affect this date â€” no other day is touched.</p>
         <div className="space-y-2">
-          <button onClick={onDeleteDay} className="w-full neon-btn-danger text-xs">DELETE ALL ({dayCount}) — ALL ALARMS & ARCS ON THIS DATE</button>
-          <button onClick={onDeleteAlarm} className="w-full text-xs py-2 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors">DELETE THIS ALARM — ONLY THIS ALARM</button>
+          <button onClick={onDeleteDay} className="w-full neon-btn-danger text-xs">DELETE ALL ({dayCount}) â€” ALL ALARMS & ARCS ON THIS DATE</button>
+          <button onClick={onDeleteAlarm} className="w-full text-xs py-2 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors">DELETE THIS ALARM â€” ONLY THIS ALARM</button>
         </div>
         <button onClick={onClose} className="neon-btn text-gray-400 hover:text-white text-xs w-full">Cancel</button>
       </div>
@@ -321,7 +321,7 @@ function AlarmDetailModal({ alarm, arc, onClose, onEdit, onDelete, onToggle, onS
             <button onClick={() => onToggleLock?.(alarm)} className={`text-[10px] font-display px-2 py-1 rounded border transition-colors ${
               alarm.locked ? 'border-neon-cyan/40 bg-neon-cyan/15 text-neon-cyan' : 'border-gray-600 bg-neon-bg text-gray-400 hover:text-white'
             }`}>
-              {alarm.locked ? '🔒 LINKED' : '🔓 LINK'}
+              {alarm.locked ? 'ðŸ”’ LINKED' : 'ðŸ”“ LINK'}
             </button>
           )}
         </div>
@@ -329,7 +329,7 @@ function AlarmDetailModal({ alarm, arc, onClose, onEdit, onDelete, onToggle, onS
         <div className="space-y-1.5">
           <p className="text-[10px] text-gray-400 font-display">MEMO</p>
           <textarea value={memoDraft} onChange={e => setMemoDraft(e.target.value)}
-            placeholder={alarm.tag_id ? 'Write a memo for this reminder...' : 'No tag — add one to attach a memo.'}
+            placeholder={alarm.tag_id ? 'Write a memo for this reminder...' : 'No tag â€” add one to attach a memo.'}
             disabled={!alarm.tag_id}
             className="neon-input w-full h-20 resize-none text-xs" />
           {memoLoaded && alarm.tag_id && memoDraft !== memo && (
@@ -343,7 +343,7 @@ function AlarmDetailModal({ alarm, arc, onClose, onEdit, onDelete, onToggle, onS
           <div className="border-t border-neon-border pt-3 space-y-2">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: arc.tag_color || '#00e5ff', boxShadow: `0 0 6px ${arc.tag_color || '#00e5ff'}80` }} />
-              <p className="text-[10px] text-gray-400 font-display">ARC · {arc.label || 'Untitled'}</p>
+              <p className="text-[10px] text-gray-400 font-display">ARC Â· {arc.label || 'Untitled'}</p>
             </div>
             <div className="flex gap-2">
               <button onClick={() => onArcSlide?.(arc)} className="text-[10px] font-display px-2 py-1 rounded border border-neon-cyan/40 bg-neon-cyan/10 text-neon-cyan hover:bg-neon-cyan/20 transition-colors flex-1">SLIDE</button>
@@ -458,7 +458,7 @@ function PaintArcModal({ arc, tag, onClose, onSave, defaultDay, defaultDate }) {
         <button onClick={() => setShowSettings(!showSettings)}
           className="w-full flex items-center justify-between text-[9px] font-display tracking-wider text-gray-400 hover:text-white border-t border-neon-border pt-3 transition-colors">
           <span>ALARM SETTINGS</span>
-          <span className="text-neon-cyan">{showSettings ? '▾' : '▸'}</span>
+          <span className="text-neon-cyan">{showSettings ? 'â–¾' : 'â–¸'}</span>
         </button>
         {showSettings && (
           <div className="space-y-4">
@@ -481,7 +481,7 @@ function PaintArcModal({ arc, tag, onClose, onSave, defaultDay, defaultDate }) {
         </div>
 
         <div className={recurring ? '' : 'opacity-40'}>
-          <label className="block text-[10px] text-gray-400 mb-2 font-display">DAYS {!recurring && '· ONE-TIME'}</label>
+          <label className="block text-[10px] text-gray-400 mb-2 font-display">DAYS {!recurring && 'Â· ONE-TIME'}</label>
           <div className="flex gap-1.5">
             {[0,1,2,3,4,5,6].map(d => (
               <button key={d} onClick={() => toggleDay(d)}
@@ -496,7 +496,7 @@ function PaintArcModal({ arc, tag, onClose, onSave, defaultDay, defaultDate }) {
         <div className="flex items-center justify-between">
           <div>
             <label className="text-[10px] text-gray-400 font-display">REPEAT WEEKLY</label>
-            <p className="text-[9px] text-gray-600">{recurring ? 'On — repeats on the selected days from today' : 'Off — one-time on the selected day'}</p>
+            <p className="text-[9px] text-gray-600">{recurring ? 'On â€” repeats on the selected days from today' : 'Off â€” one-time on the selected day'}</p>
           </div>
           <Toggle checked={recurring} onChange={() => handleRecurringChange(!recurring)} color="#00e5ff" />
         </div>
@@ -600,18 +600,18 @@ function ArcOptionsMenu({ arc, onClose, onSlide, onEdit, onDelete }) {
           <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: color, boxShadow: `0 0 8px ${color}80` }} />
           <div className="flex-1 min-w-0">
             <h3 className="font-display text-sm text-white tracking-wider truncate">{arc.label || 'ARC'}</h3>
-            <p className="font-mono text-[11px]" style={{ color }}>{arc.start_time} → {arc.end_time}</p>
+            <p className="font-mono text-[11px]" style={{ color }}>{arc.start_time} â†’ {arc.end_time}</p>
           </div>
         </div>
         <div className="grid gap-2">
           <button onClick={() => onSlide(arc)} className="text-left text-xs px-3 py-2 rounded-lg border border-neon-cyan/30 bg-neon-cyan/10 text-neon-cyan hover:bg-neon-cyan/20 transition-colors">
-            SLIDE — drag the arc on the clock
+            SLIDE â€” drag the arc on the clock
           </button>
           <button onClick={() => onEdit(arc)} className="text-left text-xs px-3 py-2 rounded-lg border border-neon-lime/30 bg-neon-lime/10 text-neon-lime hover:bg-neon-lime/20 transition-colors">
-            EDIT — label, memo, times, breaks
+            EDIT â€” label, memo, times, breaks
           </button>
           <button onClick={() => onDelete(arc)} className="text-left text-xs px-3 py-2 rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors">
-            DELETE — arc and its alarms on this date
+            DELETE â€” arc and its alarms on this date
           </button>
         </div>
         <button onClick={onClose} className="neon-btn text-gray-400 hover:text-white text-xs w-full">CLOSE</button>
@@ -847,8 +847,8 @@ export default function NeonClock() {
     slideRef.current = {
       arc: slideArc,
       grabAngle: angle,
-      refStart: addMinutes(slideArc.start_time, existing),
-      refEnd: addMinutes(slideArc.end_time, existing),
+      refStart: addMinutesTime(slideArc.start_time, existing),
+      refEnd: addMinutesTime(slideArc.end_time, existing),
       existing,
     };
     slideDraggingRef.current = true;
@@ -1040,7 +1040,7 @@ export default function NeonClock() {
   // (other days are untouched); a one-time item, or a recurring item that only
   // ever runs on that weekday, is removed entirely. Each returns item
   // descriptors used to record an undo/redo op. API 404s (item already gone,
-  // e.g. an arc removed server-side with its last alarm) are treated as done —
+  // e.g. an arc removed server-side with its last alarm) are treated as done â€”
   // the item is still recorded so undo can restore it.
   const skipOrDeleteAlarm = async (alarm, date) => {
     const dow = String(new Date(date + 'T00:00:00').getDay());
@@ -1170,7 +1170,7 @@ export default function NeonClock() {
   };
 
   // Undo a row-deleted arc or alarm: recreate it from its snapshot. Arcs go
-  // first (their alarms are regenerated server-side), then alarms — with
+  // first (their alarms are regenerated server-side), then alarms â€” with
   // arc/parent references remapped to the recreated ids. If a current
   // incarnation of the entity already exists (e.g. it was deleted and undone
   // twice, or recreated under an earlier op), it is adopted instead of
@@ -1446,7 +1446,7 @@ export default function NeonClock() {
             <button onClick={triggerTestAlarm}
               className="text-xs font-display px-2 py-1 rounded border border-neon-cyan/40 bg-neon-cyan/10 text-neon-cyan hover:bg-neon-cyan/20 transition-colors"
               title="Dev tool: fire a test alarm now">
-              🔔 TEST ALARM
+              ðŸ”” TEST ALARM
             </button>
           )}
           <span className="text-xs text-gray-500 font-display">{user?.email}</span>
@@ -1597,7 +1597,7 @@ export default function NeonClock() {
                 <div className="absolute top-12 left-1/2 -translate-x-1/2 z-10 text-center pointer-events-none">
                   <div className="text-[10px] font-display tracking-wider px-3 py-1.5 rounded-lg border border-dashed"
                     style={{ color: brushTag.color, borderColor: `${brushTag.color}60`, backgroundColor: `${brushTag.color}10` }}>
-                    PAINT WITH {brushTag.name.toUpperCase()} — DRAG ON CLOCK
+                    PAINT WITH {brushTag.name.toUpperCase()} â€” DRAG ON CLOCK
                   </div>
                 </div>
               )}
@@ -1606,7 +1606,7 @@ export default function NeonClock() {
                 <div className="absolute top-12 left-1/2 -translate-x-1/2 z-10 text-center pointer-events-none">
                   <div className="text-[10px] font-display tracking-wider px-3 py-1.5 rounded-lg border"
                     style={{ color: brushTag.color, borderColor: `${brushTag.color}60`, backgroundColor: `${brushTag.color}15` }}>
-                    {paintTimes(paintStart, paintCurrent, ampm).start} → {paintTimes(paintStart, paintCurrent, ampm).end}
+                    {paintTimes(paintStart, paintCurrent, ampm).start} â†’ {paintTimes(paintStart, paintCurrent, ampm).end}
                   </div>
                 </div>
               )}
@@ -1618,8 +1618,8 @@ export default function NeonClock() {
                     <div className="text-[10px] font-display tracking-wider px-3 py-1.5 rounded-lg border"
                       style={{ color: slideArc.tag_color || '#00e5ff', borderColor: `${slideArc.tag_color || '#00e5ff'}60`, backgroundColor: `${slideArc.tag_color || '#00e5ff'}15` }}>
                       {slidePreview
-                        ? `${slidePreview.start} → ${slidePreview.end}  ·  ${slideOffsetRef.current > 0 ? `+${slideOffsetRef.current}` : slideOffsetRef.current} min`
-                        : `${addMinutes(slideArc.start_time, arcOffsetFor(slideArc.id, selectedDateStr))} → ${addMinutes(slideArc.end_time, arcOffsetFor(slideArc.id, selectedDateStr))} — DRAG TO SLIDE`}
+                        ? `${slidePreview.start} â†’ ${slidePreview.end}  Â·  ${slideOffsetRef.current > 0 ? `+${slideOffsetRef.current}` : slideOffsetRef.current} min`
+                        : `${addMinutesTime(slideArc.start_time, arcOffsetFor(slideArc.id, selectedDateStr))} â†’ ${addMinutesTime(slideArc.end_time, arcOffsetFor(slideArc.id, selectedDateStr))} â€” DRAG TO SLIDE`}
                     </div>
                   </div>
                   <button onClick={cancelSlide}
@@ -1661,8 +1661,8 @@ export default function NeonClock() {
                   const color = arc.tag_color || '#00e5ff';
                   const preview = slideArc?.id === arc.id ? slidePreview : null;
                   const offset = arcOffsetFor(arc.id, selectedDateStr);
-                  const drawStart = preview ? preview.start : addMinutes(arc.start_time, offset);
-                  const drawEnd = preview ? preview.end : addMinutes(arc.end_time, offset);
+                  const drawStart = preview ? preview.start : addMinutesTime(arc.start_time, offset);
+                  const drawEnd = preview ? preview.end : addMinutesTime(arc.end_time, offset);
                   const path = describePaintedArc(cx, cy, rInner, rOuter, drawStart, drawEnd);
                   const isSliding = slideArc?.id === arc.id;
                   const isHoverMatch = hoveredTag != null && arc.tag_id === hoveredTag;
@@ -1772,7 +1772,7 @@ export default function NeonClock() {
           <div className="flex items-center justify-between mb-3">
             <p className="text-[9px] text-gray-500 font-display tracking-wider">
               {DAYS[selectedDow].toUpperCase()} {['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][selectedDate.getMonth()]} {selectedDate.getDate()}
-              {isTodaySelected ? ' · TODAY' : ''}
+              {isTodaySelected ? ' Â· TODAY' : ''}
             </p>
             <button onClick={() => setEditingAlarm({ time: '08:00', label: '', tag_id: null, snooze_minutes: 5, days_of_week: String(selectedDow) })}
               className="text-[9px] font-display tracking-wider text-neon-cyan border border-neon-cyan/40 rounded px-2 py-0.5 hover:bg-neon-cyan/10 transition-colors">+ NEW</button>
@@ -1800,7 +1800,7 @@ export default function NeonClock() {
                       <div className="flex items-center gap-2">
                         {isHeader && isFamily && (
                           <button onClick={(e) => { e.stopPropagation(); toggleFamily(group.id); }} className="text-[8px] text-neon-cyan flex-shrink-0 hover:text-white">
-                            {collapsed ? '▸' : '▾'}
+                            {collapsed ? 'â–¸' : 'â–¾'}
                           </button>
                         )}
                         <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: dimmed ? '#555' : color, boxShadow: dimmed ? 'none' : `0 0 4px ${color}80` }} />
@@ -1810,7 +1810,7 @@ export default function NeonClock() {
                             {isHeader && isFamily && <span className="ml-1 text-[9px] text-gray-500 font-normal">({group.members.length})</span>}
                           </p>
                           <p className="font-mono text-[11px]" style={{ color: dimmed ? '#666' : color }}>
-                            {alarm.arc_id ? addMinutes(alarm.time, arcOffsetFor(alarm.arc_id, selectedDateStr)) : alarm.time}
+                            {alarm.arc_id ? addMinutesTime(alarm.time, arcOffsetFor(alarm.arc_id, selectedDateStr)) : alarm.time}
                           </p>
                         </div>
                         <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
