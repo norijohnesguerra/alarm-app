@@ -679,6 +679,44 @@ export default function NeonClock() {
   const [ampm, setAmpm] = useState(() => { const h = getTimeInTimezone(8).getHours(); return h >= 12 ? 'PM' : 'AM'; });
   const rafRef = useRef();
 
+  // Dev-only test alarm (header button, web equivalent of the Android one)
+  const [testAlert, setTestAlert] = useState(null);
+  const testSoundRef = useRef(null);
+  const startTestAlarmSound = () => {
+    if (testSoundRef.current) return;
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const gain = ctx.createGain();
+      gain.connect(ctx.destination);
+      const osc = ctx.createOscillator();
+      osc.type = 'square';
+      osc.frequency.value = 880;
+      osc.connect(gain);
+      osc.start();
+      let on = false;
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      const timer = setInterval(() => {
+        on = !on;
+        gain.gain.setValueAtTime(on ? 0.15 : 0, ctx.currentTime);
+      }, 600);
+      testSoundRef.current = { ctx, osc, gain, timer };
+    } catch (_) {}
+  };
+  const stopTestAlarmSound = () => {
+    const s = testSoundRef.current;
+    if (!s) return;
+    clearInterval(s.timer);
+    try { s.osc.stop(); } catch (_) {}
+    try { s.ctx.close(); } catch (_) {}
+    testSoundRef.current = null;
+  };
+  const triggerTestAlarm = () => {
+    const t = getTimeInTimezone(8);
+    setTestAlert(`${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`);
+    startTestAlarmSound();
+  };
+  const dismissTestAlarm = () => { stopTestAlarmSound(); setTestAlert(null); };
+
   // Paint brush state
   const [brushTag, setBrushTag] = useState(null);
   const [painting, setPainting] = useState(false);
@@ -1391,10 +1429,35 @@ export default function NeonClock() {
           <WorkDayToggle onToggle={load} />
         </div>
         <div className="flex items-center gap-4">
+          {import.meta.env.DEV && (
+            <button onClick={triggerTestAlarm}
+              className="text-xs font-display px-2 py-1 rounded border border-neon-cyan/40 bg-neon-cyan/10 text-neon-cyan hover:bg-neon-cyan/20 transition-colors"
+              title="Dev tool: fire a test alarm now">
+              🔔 TEST ALARM
+            </button>
+          )}
           <span className="text-xs text-gray-500 font-display">{user?.email}</span>
           <button onClick={handleLogout} className="text-xs text-gray-500 hover:text-red-400 transition-colors">Sign Out</button>
         </div>
       </header>
+
+      {/* Dev-only test alarm overlay */}
+      {testAlert && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-8 bg-neon-bg/95 backdrop-blur-sm">
+          <p className="font-display text-sm tracking-[0.3em] text-neon-cyan animate-pulse-glow">TEST ALARM</p>
+          <p className="font-display text-8xl font-black text-white" style={{ textShadow: '0 0 32px #00e5ff80' }}>{testAlert}</p>
+          <div className="flex gap-4">
+            <button onClick={dismissTestAlarm}
+              className="font-display text-sm px-8 py-3 rounded-lg border border-neon-cyan/40 bg-neon-cyan/10 text-neon-cyan hover:bg-neon-cyan/20 transition-colors">
+              SNOOZE 10 MIN
+            </button>
+            <button onClick={dismissTestAlarm}
+              className="font-display text-sm px-8 py-3 rounded-lg border border-red-500/40 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors">
+              DISMISS
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main content */}
       <div className="flex-1 flex items-start justify-center p-6 gap-5">
