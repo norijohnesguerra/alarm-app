@@ -213,6 +213,19 @@ export async function getDb() {
   `);
 
   db.run(`
+    CREATE TABLE IF NOT EXISTS arc_time_offsets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      arc_id INTEGER NOT NULL,
+      date TEXT NOT NULL,
+      offset_minutes INTEGER NOT NULL DEFAULT 0,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (arc_id) REFERENCES arcs(id) ON DELETE CASCADE,
+      UNIQUE(user_id, arc_id, date)
+    )
+  `);
+
+  db.run(`
     CREATE TABLE IF NOT EXISTS work_suspension (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL UNIQUE,

@@ -61,8 +61,14 @@ function withExceptions(arc) {
   return { ...arc, exceptions: rows.map(r => r.exception_date) };
 }
 
+function withTimeOffsets(arc) {
+  if (!arc) return null;
+  const rows = queryAll('SELECT date, offset_minutes FROM arc_time_offsets WHERE user_id = ? AND arc_id = ?', [arc.user_id, arc.id]);
+  return { ...arc, time_offsets: rows };
+}
+
 function respond(arc) {
-  return withExceptions(withAlarms(arc));
+  return withTimeOffsets(withExceptions(withAlarms(arc)));
 }
 
 router.get('/', async (req, res) => {
@@ -73,7 +79,14 @@ router.get('/', async (req, res) => {
   for (const e of excRows) {
     (excMap[e.arc_id] ||= []).push(e.exception_date);
   }
-  res.json(arcs.map(arc => ({ ...arc, exceptions: excMap[arc.id] || [] })).map(withAlarms));
+  const offRows = queryAll('SELECT arc_id, date, offset_minutes FROM arc_time_offsets WHERE user_id = ?', [req.user.id]);
+  const offMap = {};
+  for (const o of offRows) {
+    (offMap[o.arc_id] ||= []).push({ date: o.date, offset_minutes: o.offset_minutes });
+  }
+  res.json(arcs
+    .map(arc => ({ ...arc, exceptions: excMap[arc.id] || [], time_offsets: offMap[arc.id] || [] }))
+    .map(withAlarms));
 });
 
 router.post('/', async (req, res) => {
@@ -199,6 +212,31 @@ router.delete('/:id/exceptions/:date', async (req, res) => {
   res.json({ message: 'Removed', date: req.params.date });
 });
 
+// Set a date-specific time offset for a recurring arc (slide only affects that date).
+router.post('/:id/time-offsets', async (req, res) => {
+  await getDb();
+  const arc = queryOne('SELECT * FROM arcs WHERE id = ? AND user_id = ?', [req.params.id, req.user.id]);
+  if (!arc) return res.status(404).json({ error: 'Arc not found' });
+  const { date, offset_minutes } = req.body;
+  if (!date) return res.status(400).json({ error: 'date required' });
+  const offset = Math.round(parseInt(offset_minutes, 10) || 0);
+  if (offset === 0) {
+    run('DELETE FROM arc_time_offsets WHERE user_id = ? AND arc_id = ? AND date = ?', [req.user.id, arc.id, date]);
+  } else {
+    run(`INSERT INTO arc_time_offsets (user_id, arc_id, date, offset_minutes) VALUES (?, ?, ?, ?)
+        ON CONFLICT(user_id, arc_id, date) DO UPDATE SET offset_minutes = excluded.offset_minutes`,
+      [req.user.id, arc.id, date, offset]);
+  }
+  res.json(respond(getArc(req.user.id, arc.id)));
+});
+
+// Undo support: remove a date-specific time offset.
+router.delete('/:id/time-offsets/:date', async (req, res) => {
+  await getDb();
+  run('DELETE FROM arc_time_offsets WHERE user_id = ? AND arc_id = ? AND date = ?', [req.user.id, req.params.id, req.params.date]);
+  res.json({ message: 'Removed', date: req.params.date });
+});
+
 router.patch('/:id/move', async (req, res) => {
   await getDb();
   const offset = parseInt(req.body.offset_minutes, 10) || 0;
@@ -222,6 +260,7 @@ router.patch('/:id/move', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   await getDb();
   run('DELETE FROM arc_exceptions WHERE user_id = ? AND arc_id = ?', [req.user.id, req.params.id]);
+  run('DELETE FROM arc_time_offsets WHERE user_id = ? AND arc_id = ?', [req.user.id, req.params.id]);
   run('DELETE FROM alarm_exceptions WHERE user_id = ? AND alarm_id IN (SELECT id FROM alarms WHERE arc_id = ?)', [req.user.id, req.params.id]);
   run('DELETE FROM alarms WHERE arc_id = ? AND user_id = ?', [req.params.id, req.user.id]);
   const result = run('DELETE FROM arcs WHERE id = ? AND user_id = ?', [req.params.id, req.user.id]);

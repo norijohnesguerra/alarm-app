@@ -52,6 +52,8 @@ export const api = {
     delete: (id) => request(`/arcs/${id}`, { method: 'DELETE' }),
     toggle: (id) => request(`/arcs/${id}/toggle`, { method: 'PATCH' }),
     move: (id, offset_minutes) => request(`/arcs/${id}/move`, { method: 'PATCH', body: JSON.stringify({ offset_minutes }) }),
+    setTimeOffset: (id, date, offset_minutes) => request(`/arcs/${id}/time-offsets`, { method: 'POST', body: JSON.stringify({ date, offset_minutes }) }),
+    removeTimeOffset: (id, date) => request(`/arcs/${id}/time-offsets/${date}`, { method: 'DELETE' }),
     addException: (id, date) => request(`/arcs/${id}/exceptions`, { method: 'POST', body: JSON.stringify({ date }) }),
     removeException: (id, date) => request(`/arcs/${id}/exceptions/${date}`, { method: 'DELETE' }),
   },

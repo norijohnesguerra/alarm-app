@@ -794,6 +794,11 @@ export default function NeonClock() {
     arcs: new Map(arcs.map(a => [a.id, new Set(a.exceptions || [])])),
   };
 
+  // Date-specific arc time offsets (slide edit only affects the selected day).
+  const arcOffsets = new Map();
+  for (const a of arcs) for (const o of (a.time_offsets || [])) arcOffsets.set(`${a.id}|${o.date}`, o.offset_minutes);
+  const arcOffsetFor = (arcId, date) => arcOffsets.get(`${arcId}|${date}`) || 0;
+
   // Alarms and arcs that apply to the selected day
   const selectedDayAlarms = alarms
     .filter(a => alarmAppliesOnDate(a, selectedDateStr, exceptions))
@@ -838,7 +843,14 @@ export default function NeonClock() {
     if (e.target.closest && e.target.closest('button, select, input')) return;
     e.currentTarget.setPointerCapture?.(e.pointerId);
     const angle = angleFromEvent(e);
-    slideRef.current = { arc: slideArc, grabAngle: angle, refStart: slideArc.start_time, refEnd: slideArc.end_time };
+    const existing = arcOffsetFor(slideArc.id, selectedDateStr);
+    slideRef.current = {
+      arc: slideArc,
+      grabAngle: angle,
+      refStart: addMinutes(slideArc.start_time, existing),
+      refEnd: addMinutes(slideArc.end_time, existing),
+      existing,
+    };
     slideDraggingRef.current = true;
     slideOffsetRef.current = 0;
   };
@@ -865,7 +877,8 @@ export default function NeonClock() {
     slideOffsetRef.current = 0;
     setSlidePreview(null);
     if (s && offset !== 0) {
-      await api.arcs.move(s.arc.id, offset);
+      // Date-specific: only this day's occurrence moves, other days keep their times.
+      await api.arcs.setTimeOffset(s.arc.id, selectedDateStr, s.existing + offset);
     }
     setSlideArc(null);
     load();
@@ -1606,7 +1619,7 @@ export default function NeonClock() {
                       style={{ color: slideArc.tag_color || '#00e5ff', borderColor: `${slideArc.tag_color || '#00e5ff'}60`, backgroundColor: `${slideArc.tag_color || '#00e5ff'}15` }}>
                       {slidePreview
                         ? `${slidePreview.start} → ${slidePreview.end}  ·  ${slideOffsetRef.current > 0 ? `+${slideOffsetRef.current}` : slideOffsetRef.current} min`
-                        : `${slideArc.start_time} → ${slideArc.end_time} — DRAG TO SLIDE`}
+                        : `${addMinutes(slideArc.start_time, arcOffsetFor(slideArc.id, selectedDateStr))} → ${addMinutes(slideArc.end_time, arcOffsetFor(slideArc.id, selectedDateStr))} — DRAG TO SLIDE`}
                     </div>
                   </div>
                   <button onClick={cancelSlide}
@@ -1647,8 +1660,9 @@ export default function NeonClock() {
                 {visibleArcs.map(arc => {
                   const color = arc.tag_color || '#00e5ff';
                   const preview = slideArc?.id === arc.id ? slidePreview : null;
-                  const drawStart = preview ? preview.start : arc.start_time;
-                  const drawEnd = preview ? preview.end : arc.end_time;
+                  const offset = arcOffsetFor(arc.id, selectedDateStr);
+                  const drawStart = preview ? preview.start : addMinutes(arc.start_time, offset);
+                  const drawEnd = preview ? preview.end : addMinutes(arc.end_time, offset);
                   const path = describePaintedArc(cx, cy, rInner, rOuter, drawStart, drawEnd);
                   const isSliding = slideArc?.id === arc.id;
                   const isHoverMatch = hoveredTag != null && arc.tag_id === hoveredTag;
@@ -1795,7 +1809,9 @@ export default function NeonClock() {
                             {name}
                             {isHeader && isFamily && <span className="ml-1 text-[9px] text-gray-500 font-normal">({group.members.length})</span>}
                           </p>
-                          <p className="font-mono text-[11px]" style={{ color: dimmed ? '#666' : color }}>{alarm.time}</p>
+                          <p className="font-mono text-[11px]" style={{ color: dimmed ? '#666' : color }}>
+                            {alarm.arc_id ? addMinutes(alarm.time, arcOffsetFor(alarm.arc_id, selectedDateStr)) : alarm.time}
+                          </p>
                         </div>
                         <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button onClick={(e) => { e.stopPropagation(); setDetailAlarm(alarm); }} className="text-gray-400 hover:text-neon-cyan p-0.5">
